@@ -1,0 +1,65 @@
+<template>
+  <view class="container">    
+    <pie :dataSource.sync="dataSource"/>
+  </view>
+</template>
+
+<script>
+  import wepy from 'wepy'
+  import Pie from '@/components/Pie'
+
+  export default class Index extends wepy.page {
+    config = {
+      navigationBarTitleText: '区域分布图'
+    }
+
+    components = {
+      pie: Pie
+    }
+
+    data = {
+      mynum: 20,
+      dataSource: [{
+        'key': '1',
+        'value': '上海',
+        'count': 251,
+        'color': '#CCFF66'
+      }, {
+        'key': '2',
+        'value': '广东',
+        'count': 222,
+        'color': '#FF99CC'
+      }, {
+        'key': '3',
+        'value': '北京',
+        'count': 203,
+        'color': '#FFFF66'
+      }, {
+        'key': '4',
+        'value': '深圳',
+        'count': 191,
+        'color': '#FF9999'
+      }, {
+        'key': '5',
+        'value': '天津',
+        'count': 131,
+        'color': '#CCFFCC'
+      }]
+    }
+
+    methods = {
+    }
+
+    events = {
+      onTapCanvasItem (item) {
+        console.info(item)
+      }
+    }
+
+    onLoad () {
+    }
+  }
+</script>
+
+<style lang="less">
+</style>

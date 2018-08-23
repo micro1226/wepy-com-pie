@@ -1,0 +1,177 @@
+<template>
+  <view class="pie-container">
+    <canvas class="my-canvas" canvas-id="myCanvasPie" @tap="onTapCanvas" />
+  </view>
+</template>
+
+<script>
+  import wepy from 'wepy'
+  import Circle from '@/extensions/Circle.js'
+
+  export default class Pie extends wepy.component {
+    props = {
+      title: {
+        type: String,
+        default: ''
+      },
+      isEnable: {
+        type: Boolean,
+        default: true
+      },
+      dataSource: {
+        type: Array,
+        default: []
+      }
+    }
+
+    data = {
+      radius: 100,
+      slashLength: 10,
+      fontSize: 13,
+      canvasWidth: 0,
+      canvasHeight: 250,
+      lineColor: '#808080',
+      textColor: '#010101'
+    }
+
+    computed = {
+      totalCount () {
+        let count = 0
+        this.dataSource.forEach(item => {
+          count = count + item.count
+        })
+
+        return count
+      },
+      centerX () {
+        return this.canvasWidth / 2.0
+      },
+      centerY () {
+        return this.canvasHeight / 2.0
+      },
+      lineLength () {
+        return (this.canvasWidth / 2.0 - this.radius) * 0.6
+      }
+    }
+
+    methods = {
+      onTapCanvas (event) {
+        const { offsetLeft, offsetTop } = event.currentTarget
+        const { x, y } = event.detail
+        const pointX = x - offsetLeft
+        const pointY = y - offsetTop
+
+        if (!Circle.isPointInHollowCircle(pointX, pointY, this.centerX, this.centerY, this.radius, this.radius * 0.5)) {
+          return
+        }
+        const pointAngle = Circle.getAngleWithPoint(pointX, pointY, this.centerX, this.centerY)
+        var start = 0
+
+        for (const item of this.dataSource) {
+          const currentAngle = item.count / this.totalCount * 360
+
+          if (start <= pointAngle && pointAngle <= start + currentAngle) {
+            this.$emit('onTapCanvasItem', item)
+            return
+          }
+          start += currentAngle
+        }
+      }
+    }
+
+    drawCanvas() {
+      var context = wepy.createCanvasContext('myCanvasPie')
+      const radius = this.radius
+      const centerX = this.centerX
+      const centerY = this.centerY
+
+      var startAngle = -90
+      var endAngle = 0
+
+      for (let index = 0; index < this.dataSource.length; index++) {
+        const item = this.dataSource[index]
+        const { color, count } = item
+
+        if (count === 0) {
+          continue
+        }
+        // draw arc
+        const currentAngle = count / this.totalCount * 360
+        endAngle = startAngle + currentAngle
+        context.beginPath()
+        context.moveTo(centerX, centerY)
+        context.arc(centerX, centerY, radius, Circle.getRadianFromAngle(startAngle), Circle.getRadianFromAngle(endAngle))
+        context.setFillStyle(color)
+        context.setLineWidth(2)
+        context.setStrokeStyle('#ffffff')
+        context.fill()
+        context.stroke()
+        context.closePath()
+
+        // draw line and text
+        const halfAngle = startAngle + 90 + currentAngle / 2.0
+        const isRight = halfAngle > 0 && halfAngle < 180
+        const mutiple = isRight ? 1 : -1
+        const slashStartLength = radius
+        const slashEndLength = radius + this.slashLength
+        const sinA = Math.sin(Circle.getRadianFromAngle(halfAngle))
+        const cosA = Math.cos(Circle.getRadianFromAngle(halfAngle))
+        const breakPoint = {
+          x: centerX + sinA * slashEndLength,
+          y: centerY - cosA * slashEndLength
+        }
+        context.beginPath()
+        context.moveTo(centerX + sinA * slashStartLength, centerY - cosA * slashStartLength)
+        context.lineTo(breakPoint.x, breakPoint.y)
+        context.moveTo(breakPoint.x, breakPoint.y)
+        context.lineTo(breakPoint.x + this.lineLength * mutiple, breakPoint.y)
+        context.setLineWidth(1)
+        context.setStrokeStyle(this.lineColor)
+        context.closePath()
+        context.stroke()
+        const align = !isRight ? 'left' : 'right'
+        context.beginPath()
+        context.setFontSize(this.fontSize)
+        context.setFillStyle(this.textColor)
+        context.setTextAlign(align)
+        context.closePath()
+        context.fillText(item.value, breakPoint.x + this.lineLength * mutiple, breakPoint.y - 4)
+        startAngle = endAngle
+      }
+
+      // draw inner circle
+      context.moveTo(centerX, centerY)
+      context.arc(centerX, centerY, radius / 2.0, 0, 2 * Math.PI)
+      context.setFillStyle('#fff')
+      context.fill()
+      context.draw(true)
+    }
+
+    initContextWidth () {
+      const systemInfo = wepy.getSystemInfoSync()
+      this.canvasWidth = systemInfo.screenWidth - 30
+      this.$apply()
+    }
+
+    onLoad () {
+      this.initContextWidth()
+      this.drawCanvas()
+    }
+  }
+</script>
+
+<style type="less">
+  .pie-container {
+    width: 100vw;
+    height: 100vw;
+    justify-content: center;
+    align-items: center;
+  }
+  .my-canvas {
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 30rpx;
+    width: 100%;
+    height: 500rpx;
+  }
+</style>
